@@ -4,9 +4,11 @@
 
 (defparameter *tabbar-margin* 1)
 (defparameter *tabbar-border-width* 1)
-(defparameter *tabbar-text-color* *mode-line-foreground-color*)
+(defparameter *tabbar-text-color* "gray73")
 (defparameter *tabbar-border-color* *mode-line-foreground-color*)
-(defparameter *tabbar-background-color* *mode-line-background-color*)
+(defparameter *tabbar-background-color* "gray40")
+(defparameter *tabbar-active-background-color* "gray60")
+(defparameter *tabbar-active-foreground-color* "gray98")
 
 (defparameter *tabbar-windows* nil)
 
@@ -141,9 +143,11 @@
     (loop for (w s) in item-alist
           with box-margin = *tabbar-margin*
           with baseline-y = (xlib:font-ascent (xlib:gcontext-font gcontext))
-          with width = (xlib:text-extents (xlib:gcontext-font gcontext) s)
+          for width = (xlib:text-extents (xlib:gcontext-font gcontext) s)
           for drawable-width = (xlib:drawable-width w)
           do
+             (dformat 2 "text width = ~d drawable width = ~d~%"
+                      width drawable-width)
              (xlib:draw-image-glyphs
               w gcontext
               (+ (/ (- drawable-width width) 2)
