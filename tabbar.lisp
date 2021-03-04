@@ -5,12 +5,13 @@
 (defparameter *tabbar-margin* 1)
 (defparameter *tabbar-border-width* 1)
 (defparameter *tabbar-text-color* "gray73")
-(defparameter *tabbar-border-color* *mode-line-foreground-color*)
+(defparameter *tabbar-border-color* "gray73")
 (defparameter *tabbar-background-color* "gray40")
 (defparameter *tabbar-active-background-color* "gray60")
 (defparameter *tabbar-active-foreground-color* "gray98")
+(defparameter *tabbar-active-border-color* "gray98")
 
-(defparameter *tabbar-windows* nil)
+(defparameter *tabbar-current-tabbar* nil)
 
 (defclass tabbar ()
   ((item-alist :initform nil 			 ;((item-window item-string))
@@ -46,8 +47,18 @@
              :save-under        :on
              :override-redirect :on ;override window mgr when positioning
              :event-mask        (xlib:make-event-mask :leave-window :exposure))))
-    (push new-tabbar *tabbar-windows*)
+    (setf *tabbar-current-tabbar* new-tabbar)
+    (dformat 2 "Tabbar created: ~s~%" (tabbar-window new-tabbar))
     new-tabbar))
+
+(defun find-tabbar-by-window (xwin)
+  (when (and *tabbar-current-tabbar*
+             (or 
+              (eq (tabbar-window *tabbar-current-tabbar*) xwin)
+              (find xwin (tabbar-item-alist *tabbar-current-tabbar*) :key #'car)))
+                   
+    *tabbar-current-tabbar*))
+
 
 (defmethod tabbar-set-item-alist ((self tabbar) &rest item-strings)
   ;; ;; Assume the new items will change the tabbar's width and height
@@ -70,10 +81,9 @@
                   :border-width *tabbar-border-width*
                   :border       (xlib:gcontext-foreground (tabbar-gc self))
                   :background   (xlib:gcontext-background (tabbar-gc self))
-                  :event-mask   (xlib:make-event-mask :enter-window
+                  :event-mask   (xlib:make-event-mask :exposure
                                                       :leave-window
-                                                      :button-press
-                                                      :button-release))
+                                                      :button-press))
                  item)))))
 
 (defmethod tabbar-recompute-geometry ((self tabbar))
@@ -108,7 +118,7 @@
                  item-height)
         (xlib:with-state (window)
           (setf (xlib:drawable-x      window) 0
-                ;; if we are positioned on top, adjust modeline height here, if present          
+                ;; TODO: if we are positioned on top, adjust modeline height here, if present          
                 (xlib:drawable-y      window) 16
                 (xlib:drawable-width  window) width
                 (xlib:drawable-height window) (+ item-height
@@ -157,11 +167,8 @@
 
 
 (defun tabbar-start (&optional (font-name "terminus-bold-16"))
-  
-  (let* (;;         (display   (xlib:open-display "127.0.0.1"))
-         (display *display*)
+  (let* ((display *display*)
          (xscreen (stumpwm::screen-number (stumpwm::current-screen)))
-         ;;(first (xlib:display-roots display)))
          (fg-color  (stumpwm::alloc-color (stumpwm::current-screen) *tabbar-text-color*))
          (bg-color  (stumpwm::alloc-color (stumpwm::current-screen) *tabbar-background-color*))
          (nice-font (xlib:OPEN-FONT display font-name))
